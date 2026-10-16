@@ -8,13 +8,13 @@ services:
       POSTGRES_USER: ticket_user
       POSTGRES_PASSWORD: ticket_pass
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - ticket-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ticker_user -d ticket_db"]
+      test: ["CMD-SHELL", "pg_isready -U ticket_user -d ticket_db"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -29,7 +29,7 @@ services:
     networks:
       - ticket-net
     healthcheck:
-      test: ["CMD", "redis cli", "ping"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
