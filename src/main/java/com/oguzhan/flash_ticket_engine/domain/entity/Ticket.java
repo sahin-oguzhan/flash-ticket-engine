@@ -30,6 +30,9 @@ public class Ticket {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
+    @Version
+    private Long version;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

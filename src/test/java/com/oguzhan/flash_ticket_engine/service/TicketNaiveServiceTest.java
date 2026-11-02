@@ -1,11 +1,12 @@
 package com.oguzhan.flash_ticket_engine.service;
 
-import com.oguzhan.flash_ticket_engine.FlashTicketEngineApplication;
-import com.oguzhan.flash_ticket_engine.domain.entity.Ticket;
+
+import com.oguzhan.flash_ticket_engine.domain.entity.TicketNaive;
 import com.oguzhan.flash_ticket_engine.domain.enums.OrderStatus;
 import com.oguzhan.flash_ticket_engine.dto.request.BuyTicketRequest;
+import com.oguzhan.flash_ticket_engine.repository.OrderNaiveRepository;
 import com.oguzhan.flash_ticket_engine.repository.OrderRepository;
-import com.oguzhan.flash_ticket_engine.repository.TicketRepository;
+import com.oguzhan.flash_ticket_engine.repository.TicketNaiveRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,26 +29,26 @@ public class TicketNaiveServiceTest {
     private TicketNaiveService ticketNaiveService;
 
     @Autowired
-    private TicketRepository ticketRepository;
+    private TicketNaiveRepository ticketNaiveRepository;
 
     @Autowired
-    private OrderRepository orderRepository;
+    private OrderNaiveRepository  orderNaiveRepository;
 
     private Long savedTicketId;
 
     @BeforeEach
     void setUp() {
-        orderRepository.deleteAll();
-        ticketRepository.deleteAll();
+        orderNaiveRepository.deleteAll();
+        ticketNaiveRepository.deleteAll();
 
-        Ticket ticket = Ticket.builder()
+        TicketNaive ticket = TicketNaive.builder()
                 .eventName("Manifest İzmir 2026")
                 .totalCapacity(100)
                 .availableCapacity(100)
                 .price(new BigDecimal("2500.00"))
                 .build();
 
-        savedTicketId = ticketRepository.save(ticket).getId();
+        savedTicketId = ticketNaiveRepository.save(ticket).getId();
     }
 
     @Test
@@ -88,9 +89,9 @@ public class TicketNaiveServiceTest {
         doneLatch.await();
         executorService.shutdown();
 
-        Ticket finalTicket = ticketRepository.findById(savedTicketId).orElseThrow();
-        int totalSoldTickets = orderRepository.sumQuantityByTicketIdAndStatus(savedTicketId, OrderStatus.CONFIRMED);
-        long confirmedOrdersCount = orderRepository.countByTicketIdAndStatus(savedTicketId, OrderStatus.CONFIRMED);
+        TicketNaive finalTicket = ticketNaiveRepository.findById(savedTicketId).orElseThrow();
+        int totalSoldTickets = orderNaiveRepository.sumQuantityByTicketIdAndStatus(savedTicketId, OrderStatus.CONFIRMED);
+        long confirmedOrdersCount = orderNaiveRepository.countByTicketIdAndStatus(savedTicketId, OrderStatus.CONFIRMED);
 
         System.out.println("==================================================");
         System.out.println("RACE CONDITION (BEFORE) METRİKLERİ");
