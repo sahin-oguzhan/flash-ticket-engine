@@ -6,7 +6,7 @@ spring:
     name: flash-ticket-engine
 
   datasource:
-    url: jdbc::postgresql://localhost:5432/ticket_db
+    url: jdbc:postgresql://localhost:5433/ticket_db
     username: ticket_user
     password: ticket_pass
     driver-class-name: org.postgresql.Driver
@@ -35,4 +35,4 @@ spring:
         acknowledge-mode: auto
         retry:
           enabled: true
-          max-attempts: 3
+          max-retries: 3
