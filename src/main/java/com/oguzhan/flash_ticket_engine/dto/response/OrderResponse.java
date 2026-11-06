@@ -1,4 +1,4 @@
-package com.oguzhan.flash_ticket_engine.dto.request;
+package com.oguzhan.flash_ticket_engine.dto.response;
 
 import com.oguzhan.flash_ticket_engine.domain.entity.Order;
 import com.oguzhan.flash_ticket_engine.domain.enums.OrderStatus;

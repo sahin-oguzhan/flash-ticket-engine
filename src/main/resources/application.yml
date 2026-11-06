@@ -36,3 +36,4 @@ spring:
         retry:
           enabled: true
           max-retries: 3
+        prefetch: 10

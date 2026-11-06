@@ -1,13 +1,12 @@
 package com.oguzhan.flash_ticket_engine.controller;
 
 import com.oguzhan.flash_ticket_engine.dto.request.BuyTicketRequest;
-import com.oguzhan.flash_ticket_engine.dto.request.OrderResponse;
+import com.oguzhan.flash_ticket_engine.dto.response.OrderResponse;
 import com.oguzhan.flash_ticket_engine.service.TicketNaiveService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 @RestController

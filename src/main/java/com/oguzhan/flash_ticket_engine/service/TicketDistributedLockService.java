@@ -4,7 +4,7 @@ import com.oguzhan.flash_ticket_engine.domain.entity.Order;
 import com.oguzhan.flash_ticket_engine.domain.entity.Ticket;
 import com.oguzhan.flash_ticket_engine.domain.enums.OrderStatus;
 import com.oguzhan.flash_ticket_engine.dto.request.BuyTicketRequest;
-import com.oguzhan.flash_ticket_engine.dto.request.OrderResponse;
+import com.oguzhan.flash_ticket_engine.dto.response.OrderResponse;
 import com.oguzhan.flash_ticket_engine.repository.OrderRepository;
 import com.oguzhan.flash_ticket_engine.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
