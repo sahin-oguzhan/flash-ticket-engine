@@ -5,7 +5,6 @@ import com.oguzhan.flash_ticket_engine.domain.entity.TicketNaive;
 import com.oguzhan.flash_ticket_engine.domain.enums.OrderStatus;
 import com.oguzhan.flash_ticket_engine.dto.request.BuyTicketRequest;
 import com.oguzhan.flash_ticket_engine.repository.OrderNaiveRepository;
-import com.oguzhan.flash_ticket_engine.repository.OrderRepository;
 import com.oguzhan.flash_ticket_engine.repository.TicketNaiveRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

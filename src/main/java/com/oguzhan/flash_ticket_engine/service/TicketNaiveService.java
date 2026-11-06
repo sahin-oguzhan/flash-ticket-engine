@@ -1,18 +1,14 @@
 package com.oguzhan.flash_ticket_engine.service;
 
-import com.oguzhan.flash_ticket_engine.domain.entity.Order;
 import com.oguzhan.flash_ticket_engine.domain.entity.OrderNaive;
-import com.oguzhan.flash_ticket_engine.domain.entity.Ticket;
 import com.oguzhan.flash_ticket_engine.domain.entity.TicketNaive;
 import com.oguzhan.flash_ticket_engine.domain.enums.OrderStatus;
 import com.oguzhan.flash_ticket_engine.dto.request.BuyTicketRequest;
-import com.oguzhan.flash_ticket_engine.dto.request.OrderResponse;
+import com.oguzhan.flash_ticket_engine.dto.response.OrderResponse;
 import com.oguzhan.flash_ticket_engine.exception.EntityNotFoundException;
 import com.oguzhan.flash_ticket_engine.exception.InsufficientTicketCapacityException;
 import com.oguzhan.flash_ticket_engine.repository.OrderNaiveRepository;
-import com.oguzhan.flash_ticket_engine.repository.OrderRepository;
 import com.oguzhan.flash_ticket_engine.repository.TicketNaiveRepository;
-import com.oguzhan.flash_ticket_engine.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
