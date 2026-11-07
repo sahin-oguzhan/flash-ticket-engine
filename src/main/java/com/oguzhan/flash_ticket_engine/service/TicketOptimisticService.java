@@ -4,6 +4,7 @@ import com.oguzhan.flash_ticket_engine.domain.entity.Order;
 import com.oguzhan.flash_ticket_engine.domain.entity.Ticket;
 import com.oguzhan.flash_ticket_engine.domain.enums.OrderStatus;
 import com.oguzhan.flash_ticket_engine.dto.request.BuyTicketRequest;
+import com.oguzhan.flash_ticket_engine.dto.response.OrderResponse;
 import com.oguzhan.flash_ticket_engine.repository.OrderRepository;
 import com.oguzhan.flash_ticket_engine.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,7 @@ public class TicketOptimisticService {
     private final OrderRepository orderRepository;
 
     @Transactional
-    public void buyTicket(Long ticketId, BuyTicketRequest request) {
+    public OrderResponse buyTicket(Long ticketId, BuyTicketRequest request) {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new RuntimeException("Bilet bulunamadı: " + ticketId));
 
@@ -43,5 +44,15 @@ public class TicketOptimisticService {
                 .build();
 
         orderRepository.save(order);
+
+        return new OrderResponse(
+                order.getId(),
+                ticketId,
+                order.getUserId(),
+                order.getQuantity(),
+                order.getTotalPrice(),
+                order.getStatus(),
+                order.getCreatedAt()
+        );
     }
 }
