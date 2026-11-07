@@ -37,3 +37,20 @@ spring:
           enabled: true
           max-retries: 3
         prefetch: 10
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: flash-ticket-engine
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
