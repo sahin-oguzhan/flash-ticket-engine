@@ -3,6 +3,7 @@ package com.oguzhan.flash_ticket_engine.service;
 import com.oguzhan.flash_ticket_engine.domain.entity.Ticket;
 import com.oguzhan.flash_ticket_engine.domain.enums.OrderStatus;
 import com.oguzhan.flash_ticket_engine.dto.request.BuyTicketRequest;
+import com.oguzhan.flash_ticket_engine.exception.InsufficientStockException;
 import com.oguzhan.flash_ticket_engine.repository.OrderRepository;
 import com.oguzhan.flash_ticket_engine.repository.TicketRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,10 +83,8 @@ public class TicketDistributedLockServiceTest {
                     BuyTicketRequest request = new BuyTicketRequest(userId, 1);
                     ticketDistributedLockService.buyTicket(savedTicketId, request);
                     successCount.incrementAndGet();
-                } catch (RuntimeException e) {
-                    if (e.getMessage() != null && e.getMessage().contains("Yetersiz stok")) {
+                } catch (InsufficientStockException e) {
                         outOfStockFailures.incrementAndGet();
-                    }
                 } catch (Exception e) {
                     lockTimeoutOrOtherFailures.incrementAndGet();
                 } finally {

@@ -4,6 +4,7 @@ import com.oguzhan.flash_ticket_engine.dto.event.OrderMessage;
 import com.oguzhan.flash_ticket_engine.dto.request.BuyTicketRequest;
 import com.oguzhan.flash_ticket_engine.dto.response.AsyncOrderResponse;
 import com.oguzhan.flash_ticket_engine.producer.TicketOrderProducer;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,9 +23,12 @@ public class TicketAsyncController {
     @PostMapping("/{ticketId}/buy-async")
     public ResponseEntity<AsyncOrderResponse> buyTicketAsync(
             @PathVariable Long ticketId,
-            @RequestBody BuyTicketRequest request
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @Valid @RequestBody BuyTicketRequest request
     ) {
-        String trackingId = UUID.randomUUID().toString();
+        String trackingId = (idempotencyKey != null && !idempotencyKey.isBlank())
+                ? idempotencyKey.trim()
+                : UUID.randomUUID().toString();
 
         OrderMessage orderMessage = new OrderMessage(
                 trackingId,
