@@ -5,8 +5,8 @@ import com.oguzhan.flash_ticket_engine.domain.entity.TicketNaive;
 import com.oguzhan.flash_ticket_engine.domain.enums.OrderStatus;
 import com.oguzhan.flash_ticket_engine.dto.request.BuyTicketRequest;
 import com.oguzhan.flash_ticket_engine.dto.response.OrderResponse;
-import com.oguzhan.flash_ticket_engine.exception.EntityNotFoundException;
-import com.oguzhan.flash_ticket_engine.exception.InsufficientTicketCapacityException;
+import com.oguzhan.flash_ticket_engine.exception.InsufficientStockException;
+import com.oguzhan.flash_ticket_engine.exception.TicketNotFoundException;
 import com.oguzhan.flash_ticket_engine.repository.OrderNaiveRepository;
 import com.oguzhan.flash_ticket_engine.repository.TicketNaiveRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,12 +26,12 @@ public class TicketNaiveService {
     @Transactional
     public OrderResponse buyTicket(Long ticketId, BuyTicketRequest request) {
         TicketNaive ticket = ticketNaiveRepository.findById(ticketId)
-                .orElseThrow(() -> new EntityNotFoundException("Bilet bulunamadı: ID = " + ticketId));
+                .orElseThrow(() -> new TicketNotFoundException(ticketId));
 
         if (ticket.getAvailableCapacity() < request.quantity()) {
             log.warn("Yetersiz stok! Mevcut: {}, İstenen: {}, User: {}",
                     ticket.getAvailableCapacity(), request.quantity(), request.userId());
-            throw new InsufficientTicketCapacityException("Yetersiz bilet stoğu");
+            throw new InsufficientStockException(ticket.getAvailableCapacity());
         }
 
         ticket.setAvailableCapacity(ticket.getAvailableCapacity() - request.quantity());

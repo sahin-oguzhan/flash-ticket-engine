@@ -5,6 +5,8 @@ import com.oguzhan.flash_ticket_engine.domain.entity.Ticket;
 import com.oguzhan.flash_ticket_engine.domain.enums.OrderStatus;
 import com.oguzhan.flash_ticket_engine.dto.request.BuyTicketRequest;
 import com.oguzhan.flash_ticket_engine.dto.response.OrderResponse;
+import com.oguzhan.flash_ticket_engine.exception.InsufficientStockException;
+import com.oguzhan.flash_ticket_engine.exception.LockAcquisitionException;
 import com.oguzhan.flash_ticket_engine.repository.OrderRepository;
 import com.oguzhan.flash_ticket_engine.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,11 +37,11 @@ public class TicketDistributedLockService {
 
         boolean isLocked = false;
         try {
-            isLocked = lock.tryLock(5, -1, TimeUnit.SECONDS);
+            isLocked = lock.tryLock(30, -1, TimeUnit.SECONDS);
 
             if (!isLocked) {
                 log.warn("Kilit edinilemedi! Yoğun trafik altında istek zaman aşımına uğradı. TicketId: {}", ticketId);
-                throw new RuntimeException("Sistem şu anda çok yoğun, lütfen tekrar deneyiniz.");
+                throw new LockAcquisitionException("Sistem şu anda çok yoğun, lütfen tekrar deneyiniz.");
             }
 
             return transactionTemplate.execute(status -> {
@@ -47,7 +49,7 @@ public class TicketDistributedLockService {
                         .orElseThrow(() -> new RuntimeException("Bilet bulunamadı: " + ticketId));
 
                 if (ticket.getAvailableCapacity() < request.quantity()) {
-                    throw new RuntimeException("Yetersiz stok! Mevcut: " + ticket.getAvailableCapacity());
+                    throw new InsufficientStockException(ticket.getAvailableCapacity());
                 }
 
                 ticket.setAvailableCapacity(ticket.getAvailableCapacity() - request.quantity());
@@ -75,7 +77,7 @@ public class TicketDistributedLockService {
             });
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Kilit bekleme sırasında kesintiye uğradı", e);
+            throw new LockAcquisitionException("Kilit bekleme sırasında kesintiye uğradı");
         } finally {
             if (isLocked && lock.isHeldByCurrentThread()) {
                 lock.unlock();

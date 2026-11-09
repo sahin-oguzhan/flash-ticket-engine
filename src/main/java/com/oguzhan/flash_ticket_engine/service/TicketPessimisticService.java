@@ -5,6 +5,8 @@ import com.oguzhan.flash_ticket_engine.domain.entity.Ticket;
 import com.oguzhan.flash_ticket_engine.domain.enums.OrderStatus;
 import com.oguzhan.flash_ticket_engine.dto.request.BuyTicketRequest;
 import com.oguzhan.flash_ticket_engine.dto.response.OrderResponse;
+import com.oguzhan.flash_ticket_engine.exception.InsufficientStockException;
+import com.oguzhan.flash_ticket_engine.exception.TicketNotFoundException;
 import com.oguzhan.flash_ticket_engine.repository.OrderRepository;
 import com.oguzhan.flash_ticket_engine.repository.TicketRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,10 +26,10 @@ public class TicketPessimisticService {
     @Transactional
     public OrderResponse buyTicket(Long ticketId, BuyTicketRequest request) {
         Ticket ticket = ticketRepository.findByIdWithPessimisticLock(ticketId)
-                .orElseThrow(() -> new RuntimeException("Bilet bulunamadı: " + ticketId));
+                .orElseThrow(() -> new TicketNotFoundException(ticketId));
 
         if (ticket.getAvailableCapacity() < request.quantity()) {
-            throw new RuntimeException("Yetersiz stok! Mevcut: " + ticket.getAvailableCapacity());
+            throw new InsufficientStockException(ticket.getAvailableCapacity());
         }
 
         ticket.setAvailableCapacity(ticket.getAvailableCapacity() - request.quantity());
