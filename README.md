@@ -16,7 +16,7 @@ Flash sale events generate heavy concurrent traffic spikes where naive transacti
 
 ```mermaid
 flowchart TD
-    Client["HTTP Clients / k6"] --> API["POST /api/tickets/buy-async"]
+    Client["HTTP Clients / k6"] --> API["POST /api/v1/tickets/{ticketId}/buy-async"]
     API --> Queue["RabbitMQ: Order Queue"]
     Queue --> Consumer["TicketOrderConsumer"]
     
@@ -108,8 +108,111 @@ Run unit and integration test suites:
 ### 4. Run Load Tests (k6)
 Stress test the asynchronous endpoint:
 ```bash
-k6 run load-test/load-test-async.js
+k6 run load-tests/load-test-async.js
 ```
+
+---
+
+## 📡 API Reference
+
+**Base URL:** `http://localhost:8080/api/v1/tickets`
+
+### Endpoints Overview
+
+| Method | Endpoint | Strategy | Success Status | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/{ticketId}/buy-async` | RabbitMQ + Redis Idempotency + Redisson Lock | `202 Accepted` | **Recommended.** Enqueues purchase request for async processing |
+| `POST` | `/{ticketId}/buy-redis-lock` | Redisson Distributed Lock | `201 Created` | Synchronous purchase protected by Redis distributed lock |
+| `POST` | `/{ticketId}/buy-pessimistic` | DB Pessimistic Lock | `201 Created` | Synchronous purchase using `SELECT ... FOR UPDATE` |
+| `POST` | `/{ticketId}/buy-optimistic` | JPA Optimistic Lock (`@Version`) | `201 Created` | Synchronous purchase with optimistic concurrency control |
+| `POST` | `/{ticketId}/buy-naive` | No Locking (Baseline) | `201 Created` | Unprotected baseline to demonstrate race conditions / over-selling |
+
+> **Note:** Make sure a ticket record exists in PostgreSQL (`tickets` table) before sending requests (e.g., `INSERT INTO tickets (event_name, total_capacity, available_capacity, price, version, created_at) VALUES ('Flash Concert', 1000, 1000, 150.00, 0, NOW());`).
+
+---
+
+### 1. Asynchronous Ticket Purchase (Recommended)
+
+`POST /api/v1/tickets/{ticketId}/buy-async`
+
+**Headers:**
+- `Content-Type: application/json`
+- `Idempotency-Key` *(optional)*: Unique key to prevent duplicate orders on retries. If omitted, a random UUID is generated as `trackingId`.
+
+**Request Body:**
+```json
+{
+  "userId": "user-123",
+  "quantity": 2
+}
+```
+- `userId` (`String`, required, non-blank): Unique identifier of the buyer.
+- `quantity` (`Integer`, required, min `1`): Number of tickets to purchase.
+
+**cURL Example:**
+```bash
+curl -X POST http://localhost:8080/api/v1/tickets/1/buy-async \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: req-user123-001" \
+  -d '{"userId": "user-123", "quantity": 2}'
+```
+
+**Response (`202 Accepted`):**
+```json
+{
+  "trackingId": "req-user123-001",
+  "status": "ACCEPTED",
+  "message": "Bilet alma talebiniz sıraya alındı, arka planda işleniyor."
+}
+```
+
+---
+
+### 2. Synchronous Ticket Purchase Endpoints
+
+`POST /api/v1/tickets/{ticketId}/buy-redis-lock` *(also `/buy-pessimistic`, `/buy-optimistic`, `/buy-naive`)*
+
+**cURL Example:**
+```bash
+curl -X POST http://localhost:8080/api/v1/tickets/1/buy-redis-lock \
+  -H "Content-Type: application/json" \
+  -d '{"userId": "user-123", "quantity": 2}'
+```
+
+**Response (`201 Created`):**
+```json
+{
+  "orderId": 42,
+  "ticketId": 1,
+  "userId": "user-123",
+  "quantity": 2,
+  "totalPrice": 300.00,
+  "status": "CONFIRMED",
+  "createdAt": "2026-11-15T19:30:00.123456"
+}
+```
+
+---
+
+### Error Responses
+
+All synchronous errors return a standardized `ErrorResponse` payload:
+
+```json
+{
+  "timestamp": "2026-11-15T19:31:00.123456",
+  "status": 409,
+  "error": "Conflict",
+  "message": "..."
+}
+```
+
+| HTTP Status | Trigger | Description |
+| :--- | :--- | :--- |
+| `404 Not Found` | `TicketNotFoundException` | The requested `ticketId` does not exist |
+| `409 Conflict` | `InsufficientStockException` | Remaining ticket stock is less than `quantity` |
+| `429 Too Many Requests` | `LockAcquisitionException` | Distributed lock could not be acquired under heavy load |
+| `500 Internal Server Error` | Unhandled `Exception` | Unexpected server-side error |
 
 ---
 
@@ -132,7 +235,7 @@ Flash-sale dönemlerinde gelen yüksek eşzamanlı istekler, klasik veritabanı 
 
 ```mermaid
 flowchart TD
-    Client["HTTP İstemcileri / k6"] --> API["POST /api/tickets/buy-async"]
+    Client["HTTP İstemcileri / k6"] --> API["POST /api/v1/tickets/{ticketId}/buy-async"]
     API --> Queue["RabbitMQ: Sipariş Kuyruğu"]
     Queue --> Consumer["TicketOrderConsumer"]
     
@@ -224,8 +327,111 @@ Birim ve entegrasyon testlerini çalıştırmak için:
 ### 4. k6 Yük Testini Çalıştırma
 Asenkron kuyruk endpoint'ine yük testi uygulamak için:
 ```bash
-k6 run load-test/load-test-async.js
+k6 run load-tests/load-test-async.js
 ```
+
+---
+
+## 📡 API Dokümantasyonu
+
+**Temel URL:** `http://localhost:8080/api/v1/tickets`
+
+### Endpoint Özeti
+
+| Metot | Endpoint | Strateji | Başarı Kodu | Açıklama |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/{ticketId}/buy-async` | RabbitMQ + Redis Idempotency + Redisson Lock | `202 Accepted` | **Önerilen.** Talebi asenkron işlenmek üzere kuyruğa alır |
+| `POST` | `/{ticketId}/buy-redis-lock` | Redisson Dağıtık Kilit | `201 Created` | Redis dağıtık kilidi ile korunan senkron satın alma |
+| `POST` | `/{ticketId}/buy-pessimistic` | DB Pessimistic Lock | `201 Created` | `SELECT ... FOR UPDATE` kullanan senkron satın alma |
+| `POST` | `/{ticketId}/buy-optimistic` | JPA Optimistic Lock (`@Version`) | `201 Created` | İyimser kilitleme (optimistic concurrency) ile satın alma |
+| `POST` | `/{ticketId}/buy-naive` | Kilitsiz (Referans/Baseline) | `201 Created` | Race condition ve stok aşımı (over-selling) problemini göstermek için |
+
+> **Not:** İstek atmadan önce PostgreSQL'deki `tickets` tablosunda en az bir bilet kaydı bulunduğundan emin olun (örneğin: `INSERT INTO tickets (event_name, total_capacity, available_capacity, price, version, created_at) VALUES ('Flash Concert', 1000, 1000, 150.00, 0, NOW());`).
+
+---
+
+### 1. Asenkron Bilet Satın Alma (Önerilen)
+
+`POST /api/v1/tickets/{ticketId}/buy-async`
+
+**Header Bilgileri:**
+- `Content-Type: application/json`
+- `Idempotency-Key` *(isteğe bağlı)*: Tekrarlanan isteklerde çift siparişi önlemek için benzersiz anahtar. Gönderilmezse sunucu otomatik bir UUID üretip `trackingId` olarak döner.
+
+**İstek Gövdesi (Request Body):**
+```json
+{
+  "userId": "user-123",
+  "quantity": 2
+}
+```
+- `userId` (`String`, zorunlu, boş olamaz): Satın alan kullanıcının kimliği.
+- `quantity` (`Integer`, zorunlu, en az `1`): Satın alınacak bilet adedi.
+
+**cURL Örneği:**
+```bash
+curl -X POST http://localhost:8080/api/v1/tickets/1/buy-async \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: req-user123-001" \
+  -d '{"userId": "user-123", "quantity": 2}'
+```
+
+**Yanıt (`202 Accepted`):**
+```json
+{
+  "trackingId": "req-user123-001",
+  "status": "ACCEPTED",
+  "message": "Bilet alma talebiniz sıraya alındı, arka planda işleniyor."
+}
+```
+
+---
+
+### 2. Senkron Bilet Satın Alma Endpoint'leri
+
+`POST /api/v1/tickets/{ticketId}/buy-redis-lock` *(ayrıca `/buy-pessimistic`, `/buy-optimistic`, `/buy-naive`)*
+
+**cURL Örneği:**
+```bash
+curl -X POST http://localhost:8080/api/v1/tickets/1/buy-redis-lock \
+  -H "Content-Type: application/json" \
+  -d '{"userId": "user-123", "quantity": 2}'
+```
+
+**Yanıt (`201 Created`):**
+```json
+{
+  "orderId": 42,
+  "ticketId": 1,
+  "userId": "user-123",
+  "quantity": 2,
+  "totalPrice": 300.00,
+  "status": "CONFIRMED",
+  "createdAt": "2026-11-15T19:30:00.123456"
+}
+```
+
+---
+
+### Hata Yanıtları
+
+Tüm senkron hatalar standart `ErrorResponse` formatında döner:
+
+```json
+{
+  "timestamp": "2026-11-15T19:31:00.123456",
+  "status": 409,
+  "error": "Conflict",
+  "message": "..."
+}
+```
+
+| HTTP Kodu | Fırlatılan İstisna | Açıklama |
+| :--- | :--- | :--- |
+| `404 Not Found` | `TicketNotFoundException` | Belirtilen `ticketId` veritabanında bulunamadı |
+| `409 Conflict` | `InsufficientStockException` | Kalan bilet stoğu istenen `quantity` değerinden az |
+| `429 Too Many Requests` | `LockAcquisitionException` | Yoğun trafik altında dağıtık kilit alınamadı |
+| `500 Internal Server Error` | Beklenmeyen `Exception` | Sunucu tarafında öngörülmeyen bir hata oluştu |
 
 ---
 
