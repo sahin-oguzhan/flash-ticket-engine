@@ -41,7 +41,7 @@ public class TicketOrderConsumerTest {
 
         ticketOrderConsumer.processOrder(orderMessage);
 
-        verify(ticketDistributedLockService).buyTicket(eq(10L), any(BuyTicketRequest.class));
+        verify(ticketDistributedLockService).buyTicket(eq(10L), any(BuyTicketRequest.class), eq("order-corr-1"));
         verify(idempotencyService).markCompleted("order-corr-1");
         verify(idempotencyService, never()).release(any());
     }
@@ -63,7 +63,7 @@ public class TicketOrderConsumerTest {
     void shouldNotRetryWhenBusinessExceptionOccurs() {
         when(idempotencyService.lockOrAcquire("order-corr-1")).thenReturn(true);
         doThrow(new InsufficientStockException(0))
-                .when(ticketDistributedLockService).buyTicket(eq(10L), any(BuyTicketRequest.class));
+                .when(ticketDistributedLockService).buyTicket(eq(10L), any(BuyTicketRequest.class), eq("order-corr-1"));
 
         ticketOrderConsumer.processOrder(orderMessage);
 
@@ -76,7 +76,7 @@ public class TicketOrderConsumerTest {
     void shouldReleaseLockAndThrowExceptionOnUnexpectedFailure() {
         when(idempotencyService.lockOrAcquire("order-corr-1")).thenReturn(true);
         doThrow(new RuntimeException("Database connection timeout!"))
-                .when(ticketDistributedLockService).buyTicket(eq(10L), any(BuyTicketRequest.class));
+                .when(ticketDistributedLockService).buyTicket(eq(10L), any(BuyTicketRequest.class), eq("order-corr-1"));
 
         assertThatThrownBy(() -> ticketOrderConsumer.processOrder(orderMessage))
                 .isInstanceOf(RuntimeException.class)

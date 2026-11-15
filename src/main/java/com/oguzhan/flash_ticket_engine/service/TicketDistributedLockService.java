@@ -32,6 +32,10 @@ public class TicketDistributedLockService {
     private static final String LOCK_KEY_PREFIX = "lock:ticket:";
 
     public OrderResponse buyTicket(Long ticketId, BuyTicketRequest request) {
+        return buyTicket(ticketId, request, null);
+    }
+
+    public OrderResponse buyTicket(Long ticketId, BuyTicketRequest request, String trackingId) {
         String lockKey = LOCK_KEY_PREFIX + ticketId;
         RLock lock = redissonClient.getLock(lockKey);
 
@@ -56,6 +60,7 @@ public class TicketDistributedLockService {
                 ticketRepository.save(ticket);
 
                 Order order = Order.builder()
+                        .trackingId(trackingId)
                         .ticket(ticket)
                         .userId(request.userId())
                         .quantity(request.quantity())

@@ -7,8 +7,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
+    Optional<Order> findByTrackingId(String trackingId);
     List<Order> findByTicketId(Long ticketId);
     long countByTicketIdAndStatus(Long ticketId, OrderStatus status);
     @Query("SELECT COALESCE(SUM(o.quantity), 0) FROM Order o WHERE o.ticket.id = :ticketId AND o.status = :status")

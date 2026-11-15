@@ -122,6 +122,8 @@ k6 run load-tests/load-test-async.js
 | Method | Endpoint | Strategy | Success Status | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/{ticketId}/buy-async` | RabbitMQ + Redis Idempotency + Redisson Lock | `202 Accepted` | **Recommended.** Enqueues purchase request for async processing |
+| `GET` | `/orders/{trackingId}` | Status Polling (PostgreSQL + Redis) | `200 OK` | Checks the processing status / result of an async order |
+| `GET` | `/{ticketId}` | Ticket Query | `200 OK` | Returns event details and remaining `availableCapacity` |
 | `POST` | `/{ticketId}/buy-redis-lock` | Redisson Distributed Lock | `201 Created` | Synchronous purchase protected by Redis distributed lock |
 | `POST` | `/{ticketId}/buy-pessimistic` | DB Pessimistic Lock | `201 Created` | Synchronous purchase using `SELECT ... FOR UPDATE` |
 | `POST` | `/{ticketId}/buy-optimistic` | JPA Optimistic Lock (`@Version`) | `201 Created` | Synchronous purchase with optimistic concurrency control |
@@ -168,7 +170,51 @@ curl -X POST http://localhost:8080/api/v1/tickets/1/buy-async \
 
 ---
 
-### 2. Synchronous Ticket Purchase Endpoints
+### 2. Query Async Order Status & Ticket Stock
+
+`GET /api/v1/tickets/orders/{trackingId}`
+
+```bash
+curl http://localhost:8080/api/v1/tickets/orders/req-user123-001
+```
+
+**Response (`200 OK` - Completed):**
+```json
+{
+  "trackingId": "req-user123-001",
+  "orderId": 42,
+  "ticketId": 1,
+  "userId": "user-123",
+  "quantity": 2,
+  "totalPrice": 300.00,
+  "status": "CONFIRMED",
+  "message": "Sipariş başarıyla tamamlandı.",
+  "createdAt": "2026-11-15T19:30:00.123456"
+}
+```
+*(Returns `202 Accepted` with `"status": "PROCESSING"` while in progress, `"status": "FAILED"` if rejected due to business rules such as insufficient stock, or `404 Not Found` if `trackingId` is unknown.)*
+
+`GET /api/v1/tickets/{ticketId}`
+
+```bash
+curl http://localhost:8080/api/v1/tickets/1
+```
+
+**Response (`200 OK`):**
+```json
+{
+  "id": 1,
+  "eventName": "Flash Concert",
+  "totalCapacity": 1000,
+  "availableCapacity": 998,
+  "price": 150.00,
+  "createdAt": "2026-11-15T19:00:00.000000"
+}
+```
+
+---
+
+### 3. Synchronous Ticket Purchase Endpoints
 
 `POST /api/v1/tickets/{ticketId}/buy-redis-lock` *(also `/buy-pessimistic`, `/buy-optimistic`, `/buy-naive`)*
 
@@ -341,6 +387,8 @@ k6 run load-tests/load-test-async.js
 | Metot | Endpoint | Strateji | Başarı Kodu | Açıklama |
 | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/{ticketId}/buy-async` | RabbitMQ + Redis Idempotency + Redisson Lock | `202 Accepted` | **Önerilen.** Talebi asenkron işlenmek üzere kuyruğa alır |
+| `GET` | `/orders/{trackingId}` | Durum Sorgulama (PostgreSQL + Redis) | `200 OK` | Asenkron siparişin sonucunu (`CONFIRMED`, `PROCESSING`, `FAILED`) döner |
+| `GET` | `/{ticketId}` | Bilet Bilgisi | `200 OK` | Etkinlik bilgilerini ve güncel `availableCapacity` stoğunu döner |
 | `POST` | `/{ticketId}/buy-redis-lock` | Redisson Dağıtık Kilit | `201 Created` | Redis dağıtık kilidi ile korunan senkron satın alma |
 | `POST` | `/{ticketId}/buy-pessimistic` | DB Pessimistic Lock | `201 Created` | `SELECT ... FOR UPDATE` kullanan senkron satın alma |
 | `POST` | `/{ticketId}/buy-optimistic` | JPA Optimistic Lock (`@Version`) | `201 Created` | İyimser kilitleme (optimistic concurrency) ile satın alma |
@@ -387,7 +435,51 @@ curl -X POST http://localhost:8080/api/v1/tickets/1/buy-async \
 
 ---
 
-### 2. Senkron Bilet Satın Alma Endpoint'leri
+### 2. Asenkron Sipariş Durumu & Bilet Stoğu Sorgulama
+
+`GET /api/v1/tickets/orders/{trackingId}`
+
+```bash
+curl http://localhost:8080/api/v1/tickets/orders/req-user123-001
+```
+
+**Yanıt (`200 OK` - Tamamlandı):**
+```json
+{
+  "trackingId": "req-user123-001",
+  "orderId": 42,
+  "ticketId": 1,
+  "userId": "user-123",
+  "quantity": 2,
+  "totalPrice": 300.00,
+  "status": "CONFIRMED",
+  "message": "Sipariş başarıyla tamamlandı.",
+  "createdAt": "2026-11-15T19:30:00.123456"
+}
+```
+*(İşlem sürüyorsa `202 Accepted` ile `"status": "PROCESSING"`, yetersiz stok gibi bir iş kuralı nedeniyle reddedildiyse `"status": "FAILED"`, kayıt yoksa `404 Not Found` döner.)*
+
+`GET /api/v1/tickets/{ticketId}`
+
+```bash
+curl http://localhost:8080/api/v1/tickets/1
+```
+
+**Yanıt (`200 OK`):**
+```json
+{
+  "id": 1,
+  "eventName": "Flash Concert",
+  "totalCapacity": 1000,
+  "availableCapacity": 998,
+  "price": 150.00,
+  "createdAt": "2026-11-15T19:00:00.000000"
+}
+```
+
+---
+
+### 3. Senkron Bilet Satın Alma Endpoint'leri
 
 `POST /api/v1/tickets/{ticketId}/buy-redis-lock` *(ayrıca `/buy-pessimistic`, `/buy-optimistic`, `/buy-naive`)*
 

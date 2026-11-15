@@ -32,4 +32,8 @@ public class IdempotencyService {
         String redisKey = IDEMPOTENCY_PREFIX + key;
         stringRedisTemplate.delete(redisKey);
     }
+
+    public String getStatus(String key) {
+        return stringRedisTemplate.opsForValue().get(IDEMPOTENCY_PREFIX + key);
+    }
 }
