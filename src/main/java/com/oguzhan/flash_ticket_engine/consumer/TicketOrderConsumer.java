@@ -33,7 +33,7 @@ public class TicketOrderConsumer {
 
         try {
             BuyTicketRequest request = new BuyTicketRequest(orderMessage.userId(), orderMessage.quantity());
-            ticketDistributedLockService.buyTicket(orderMessage.ticketId(), request);
+            ticketDistributedLockService.buyTicket(orderMessage.ticketId(), request, key);
 
             idempotencyService.markCompleted(key);
 
